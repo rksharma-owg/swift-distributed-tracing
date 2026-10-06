@@ -1,66 +1,7 @@
-name: Contribution preflight
+name: CMake contribution preflight
 permissions:
   contents: read
 jobs:
-  soundness:
-    name: Soundness
-    uses: rksharma-owg/swift-distributed-tracing/.github/workflows/fork-soundness.yml@main
-    with:
-      license_header_check_project_name: Swift Distributed Tracing
-      api_breakage_check_baseline: ${{ inputs.base_sha }}
-  unit-tests:
-    name: Unit tests
-    uses: rksharma-owg/swift-distributed-tracing/.github/workflows/unit_tests.yml@main
-    with:
-      linux_6_2_arguments_override: --explicit-target-dependency-import-check error -Xswiftc -require-explicit-sendable
-      linux_6_3_arguments_override: --explicit-target-dependency-import-check error -Xswiftc -require-explicit-sendable
-      linux_6_4_arguments_override: --explicit-target-dependency-import-check error -Xswiftc -require-explicit-sendable
-      linux_nightly_next_arguments_override: --explicit-target-dependency-import-check error -Xswiftc -require-explicit-sendable
-      linux_nightly_main_arguments_override: --explicit-target-dependency-import-check error -Xswiftc -require-explicit-sendable
-      windows_6_2_enabled: true
-      windows_6_3_enabled: true
-      windows_6_4_enabled: true
-      windows_nightly_next_enabled: true
-      windows_nightly_main_enabled: true
-      windows_6_2_arguments_override: --explicit-target-dependency-import-check error -Xswiftc -require-explicit-sendable
-      windows_6_3_arguments_override: --explicit-target-dependency-import-check error -Xswiftc -require-explicit-sendable
-      windows_6_4_arguments_override: --explicit-target-dependency-import-check error -Xswiftc -require-explicit-sendable
-      windows_nightly_next_arguments_override: --explicit-target-dependency-import-check error -Xswiftc -require-explicit-sendable
-      windows_nightly_main_arguments_override: --explicit-target-dependency-import-check error -Xswiftc -require-explicit-sendable
-  macos-tests:
-    name: macOS tests
-    uses: rksharma-owg/swift-distributed-tracing/.github/workflows/macos_tests.yml@main
-    with:
-      runner_pool: general
-      build_scheme: swift-distributed-tracing-Package
-      swift_6_2_enabled: true
-      swift_6_3_enabled: true
-      swift_6_4_enabled: true
-  wasm-sdk:
-    name: WebAssembly Swift SDK
-    uses: rksharma-owg/swift-distributed-tracing/.github/workflows/wasm_swift_sdk.yml@main
-    with:
-      nightly_next_enabled: false
-  benchmarks:
-    name: Benchmarks
-    uses: rksharma-owg/swift-distributed-tracing/.github/workflows/benchmarks.yml@main
-    with:
-      benchmark_package_path: Benchmarks
-  macos-benchmarks:
-    name: macOS benchmarks
-    uses: rksharma-owg/swift-distributed-tracing/.github/workflows/macos_benchmarks.yml@main
-    with:
-      macos_runner_pool: general
-      benchmark_package_paths: '["Benchmarks"]'
-      macos_swift_6_2_enabled: true
-      macos_swift_6_3_enabled: true
-      macos_swift_6_4_enabled: true
-  cxx-interop:
-    name: Cxx interop
-    uses: rksharma-owg/swift-distributed-tracing/.github/workflows/cxx_interop.yml@main
-  release-builds:
-    name: Release builds
-    uses: rksharma-owg/swift-distributed-tracing/.github/workflows/release_builds.yml@main
   cmake-linux:
     runs-on: ubuntu-24.04
     strategy:
