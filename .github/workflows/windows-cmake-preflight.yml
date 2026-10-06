@@ -30,9 +30,9 @@ jobs:
 
         git clone https://github.com/rksharma-owg/swift-service-context.git context-source
 
-        git -C context-source checkout 7608878a36e0caf5914cdc1414ab5bbf4dade8b8
+        git -C context-source checkout d2e87c85f268a2a7134d87fc72045313eab2a6a9
 
-        test "$(git -C context-source rev-parse HEAD)" = "7608878a36e0caf5914cdc1414ab5bbf4dade8b8"
+        test "$(git -C context-source rev-parse HEAD)" = "d2e87c85f268a2a7134d87fc72045313eab2a6a9"
 
         '
     - name: Install verified CMake binary
