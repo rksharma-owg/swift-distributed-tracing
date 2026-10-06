@@ -1,0 +1,31 @@
+name: macOS contribution preflight
+permissions:
+  contents: read
+jobs:
+  macos-tests:
+    name: macOS tests
+    uses: rksharma-owg/swift-distributed-tracing/.github/workflows/macos_tests.yml@main
+    with:
+      runner_pool: general
+      build_scheme: swift-distributed-tracing-Package
+      swift_6_2_enabled: true
+      swift_6_3_enabled: true
+      swift_6_4_enabled: true
+  macos-benchmarks:
+    name: macOS benchmarks
+    uses: rksharma-owg/swift-distributed-tracing/.github/workflows/macos_benchmarks.yml@main
+    with:
+      macos_runner_pool: general
+      benchmark_package_paths: '["Benchmarks"]'
+      macos_swift_6_2_enabled: true
+      macos_swift_6_3_enabled: true
+      macos_swift_6_4_enabled: true
+'on':
+  workflow_dispatch:
+    inputs:
+      patch_sha:
+        type: string
+        required: true
+      base_sha:
+        type: string
+        required: true
