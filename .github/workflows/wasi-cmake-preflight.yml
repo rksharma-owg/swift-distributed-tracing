@@ -84,7 +84,7 @@ jobs:
         set(CMAKE_SYSROOT "$sdk/WASI.sdk")
 
         set(CMAKE_Swift_FLAGS "-target wasm32-unknown-wasip1 -sdk $sdk/WASI.sdk -resource-dir $sdk/swift.xctoolchain/usr/lib/swift_static
-        -static-stdlib")
+        -static-stdlib -Xclang-linker -resource-dir -Xclang-linker $sdk/swift.xctoolchain/usr/lib/clang")
 
         set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 
