@@ -83,7 +83,8 @@ jobs:
 
         set(CMAKE_SYSROOT "$sdk/WASI.sdk")
 
-        set(CMAKE_Swift_FLAGS "-resource-dir $sdk/swift.xctoolchain/usr/lib/swift_static -static-stdlib")
+        set(CMAKE_Swift_FLAGS "-target wasm32-unknown-wasip1 -sdk $sdk/WASI.sdk -resource-dir $sdk/swift.xctoolchain/usr/lib/swift_static
+        -static-stdlib")
 
         set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 
@@ -95,7 +96,7 @@ jobs:
 
         cmake -S . -B /tmp/library -G Ninja -DCMAKE_TOOLCHAIN_FILE=/tmp/wasi.cmake -DCMAKE_INSTALL_PREFIX=/tmp/prefix
 
-        grep -q ''BUILD_SHARED_LIBS:BOOL=NO'' /tmp/library/CMakeCache.txt
+        grep -q ''BUILD_SHARED_LIBS:BOOL=OFF'' /tmp/library/CMakeCache.txt
 
         cmake --build /tmp/library --verbose
 
