@@ -228,6 +228,22 @@ jobs:
         \ -v \"${env:GITHUB_WORKSPACE}:C:\\work\" -w C:\\work swift:6.4-windowsservercore-ltsc2022 powershell -NoProfile\
         \ -ExecutionPolicy Bypass -File C:\\work\\cmake-smoke.ps1\nif ($LASTEXITCODE -ne 0) { throw 'Windows CMake\
         \ validation failed' }"
+  cmake-lists:
+    name: Check CMake Lists
+    uses: rksharma-owg/swift-distributed-tracing/.github/workflows/cmake_tests.yml@main
+    with:
+      image: "swift:6.2-jammy"
+      update_cmake_lists_config: >-
+        {
+          "targets": [
+            { "name": "Instrumentation", "type": "source", "exceptions": [] },
+            { "name": "ServiceContextModule", "type": "source", "exceptions": [] },
+            { "name": "Tracing", "type": "source", "exceptions": [] },
+            { "name": "InMemoryTracing", "type": "source", "exceptions": [] },
+            { "name": "_CWASI", "type": "source", "exceptions": [] }
+          ]
+        }
+
 'on':
   workflow_dispatch:
     inputs:
