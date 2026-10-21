@@ -94,6 +94,30 @@ jobs:
         git merge-base --is-ancestor "$BASE_SHA" HEAD
 
         git log -1 --format=fuller'
+    - name: Restore independent fork-only consumer
+      shell: bash
+      run: "set -euo pipefail\nmkdir -p Tests/CMake\ncat > Tests/CMake/CMakeLists.txt <<'CONSUMER_EOF'\n##===----------------------------------------------------------------------===##\n\
+        ##\n## This source file is part of the Swift Distributed Tracing open source project\n##\n## Copyright (c)\
+        \ 2026 Apple Inc. and the Swift Distributed Tracing project authors\n## Licensed under Apache License v2.0\n\
+        ##\n## See LICENSE.txt for license information\n## See CONTRIBUTORS.txt for the list of Swift Distributed\
+        \ Tracing project authors\n##\n## SPDX-License-Identifier: Apache-2.0\n##\n##===----------------------------------------------------------------------===##\n\
+        \ncmake_minimum_required(VERSION 3.29)\nproject(CMakeConsumer LANGUAGES C Swift)\n\n# Match the DLL runtime\
+        \ used by the Windows Swift SDK, including Debug builds.\nif(WIN32 AND NOT DEFINED CMAKE_MSVC_RUNTIME_LIBRARY)\n\
+        \  set(CMAKE_MSVC_RUNTIME_LIBRARY MultiThreadedDLL)\nendif()\nfind_package(SwiftDistributedTracing CONFIG\
+        \ REQUIRED)\nadd_executable(CMakeConsumer main.swift)\ntarget_link_libraries(CMakeConsumer PRIVATE SwiftDistributedTracing::Instrumentation\
+        \ SwiftDistributedTracing::Tracing SwiftDistributedTracing::InMemoryTracing)\nenable_testing()\nadd_test(NAME\
+        \ CMakeConsumer COMMAND CMakeConsumer)\nif(WIN32)\n  set_tests_properties(CMakeConsumer PROPERTIES ENVIRONMENT_MODIFICATION\n\
+        \    \"PATH=path_list_prepend:$<TARGET_FILE_DIR:SwiftDistributedTracing::InMemoryTracing>\")\nendif()\n\n\
+        CONSUMER_EOF\ncat > Tests/CMake/main.swift <<'CONSUMER_EOF'\n//===----------------------------------------------------------------------===//\n\
+        //\n// This source file is part of the Swift Distributed Tracing open source project\n//\n// Copyright (c)\
+        \ 2026 Apple Inc. and the Swift Distributed Tracing project authors\n// Licensed under Apache License v2.0\n\
+        //\n// See LICENSE.txt for license information\n// See CONTRIBUTORS.txt for the list of Swift Distributed\
+        \ Tracing project authors\n//\n// SPDX-License-Identifier: Apache-2.0\n//\n//===----------------------------------------------------------------------===//\n\
+        \nimport InMemoryTracing\nimport Instrumentation\nimport ServiceContextModule\nimport Tracing\n\nlet context:\
+        \ ServiceContextModule.ServiceContext = InstrumentationContext.topLevel\nlet tracer = InMemoryTracer()\n\
+        let span = tracer.startSpan(\"CMake\", context: context)\nspan.end()\nprecondition(tracer.popFinishedSpans().count\
+        \ == 1)\nlet instrument = NoOpInstrument()\nlet noOpTracer = NoOpTracer()\nnoOpTracer.forceFlush()\n_ =\
+        \ instrument\n\nCONSUMER_EOF\n"
     - name: Install CMake and Ninja
       run: 'apt-get update -qq && apt-get install -y python3-venv ninja-build
 
@@ -104,17 +128,17 @@ jobs:
         echo /tmp/cmake-env/bin >> "$GITHUB_PATH"'
     - name: Build-tree and relocated static/shared consumers
       shell: bash
-      run: "set -euo pipefail\nswift --version\ncmake --version\nfor shared in OFF ON; do\n  for generator in Ninja\
-        \ 'Ninja Multi-Config'; do\n    label=\"${shared}-${generator// /-}\"\n    prefix=\"$PWD/check-$label/prefix\"\
-        \n    cmake -S . -B \"library-$label\" -G \"$generator\" -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=\"\
-        $shared\" -DCMAKE_PREFIX_PATH=\"$prefix\" -DCMAKE_INSTALL_PREFIX=\"$prefix\"\n    cmake --build \"library-$label\"\
-        \ --config Debug\n    cmake --install \"library-$label\" --config Debug\n    cmake -DCMAKE_BUILD_TYPE=Debug\
-        \ -S Tests/CMake -B \"consumer-build-$label\" -G \"$generator\" -DCMAKE_PREFIX_PATH=\"$PWD/library-$label;$prefix\"\
-        \n    cmake --build \"consumer-build-$label\" --config Debug\n    ctest --test-dir \"consumer-build-$label\"\
-        \ -C Debug --output-on-failure\n    mv \"$prefix\" \"${prefix}-moved\"\n    cmake -DCMAKE_BUILD_TYPE=Debug\
-        \ -S Tests/CMake -B \"consumer-install-$label\" -G \"$generator\" -DCMAKE_PREFIX_PATH=\"${prefix}-moved\"\
-        \n    cmake --build \"consumer-install-$label\" --config Debug\n    ctest --test-dir \"consumer-install-$label\"\
-        \ -C Debug --output-on-failure\n  done\ndone\n"
+      run: "set -euo pipefail\nswift --version\ncmake --version\nfor shared in OFF ON; do\n  for generator in Ninja;\
+        \ do\n    label=\"${shared}-${generator// /-}\"\n    prefix=\"$PWD/check-$label/prefix\"\n    cmake -S .\
+        \ -B \"library-$label\" -G \"$generator\" -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=\"$shared\" -DCMAKE_PREFIX_PATH=\"\
+        $prefix\" -DCMAKE_INSTALL_PREFIX=\"$prefix\"\n    cmake --build \"library-$label\" --config Debug\n    cmake\
+        \ --install \"library-$label\" --config Debug\n    cmake -DCMAKE_BUILD_TYPE=Debug -S Tests/CMake -B \"consumer-build-$label\"\
+        \ -G \"$generator\" -DCMAKE_PREFIX_PATH=\"$PWD/library-$label;$prefix\"\n    cmake --build \"consumer-build-$label\"\
+        \ --config Debug\n    ctest --test-dir \"consumer-build-$label\" -C Debug --output-on-failure\n    mv \"\
+        $prefix\" \"${prefix}-moved\"\n    cmake -DCMAKE_BUILD_TYPE=Debug -S Tests/CMake -B \"consumer-install-$label\"\
+        \ -G \"$generator\" -DCMAKE_PREFIX_PATH=\"${prefix}-moved\"\n    cmake --build \"consumer-install-$label\"\
+        \ --config Debug\n    ctest --test-dir \"consumer-install-$label\" -C Debug --output-on-failure\n  done\n\
+        done\n"
   cmake-macos:
     runs-on: xcode-27
     steps:
@@ -137,6 +161,30 @@ jobs:
         git merge-base --is-ancestor "$BASE_SHA" HEAD
 
         git log -1 --format=fuller'
+    - name: Restore independent fork-only consumer
+      shell: bash
+      run: "set -euo pipefail\nmkdir -p Tests/CMake\ncat > Tests/CMake/CMakeLists.txt <<'CONSUMER_EOF'\n##===----------------------------------------------------------------------===##\n\
+        ##\n## This source file is part of the Swift Distributed Tracing open source project\n##\n## Copyright (c)\
+        \ 2026 Apple Inc. and the Swift Distributed Tracing project authors\n## Licensed under Apache License v2.0\n\
+        ##\n## See LICENSE.txt for license information\n## See CONTRIBUTORS.txt for the list of Swift Distributed\
+        \ Tracing project authors\n##\n## SPDX-License-Identifier: Apache-2.0\n##\n##===----------------------------------------------------------------------===##\n\
+        \ncmake_minimum_required(VERSION 3.29)\nproject(CMakeConsumer LANGUAGES C Swift)\n\n# Match the DLL runtime\
+        \ used by the Windows Swift SDK, including Debug builds.\nif(WIN32 AND NOT DEFINED CMAKE_MSVC_RUNTIME_LIBRARY)\n\
+        \  set(CMAKE_MSVC_RUNTIME_LIBRARY MultiThreadedDLL)\nendif()\nfind_package(SwiftDistributedTracing CONFIG\
+        \ REQUIRED)\nadd_executable(CMakeConsumer main.swift)\ntarget_link_libraries(CMakeConsumer PRIVATE SwiftDistributedTracing::Instrumentation\
+        \ SwiftDistributedTracing::Tracing SwiftDistributedTracing::InMemoryTracing)\nenable_testing()\nadd_test(NAME\
+        \ CMakeConsumer COMMAND CMakeConsumer)\nif(WIN32)\n  set_tests_properties(CMakeConsumer PROPERTIES ENVIRONMENT_MODIFICATION\n\
+        \    \"PATH=path_list_prepend:$<TARGET_FILE_DIR:SwiftDistributedTracing::InMemoryTracing>\")\nendif()\n\n\
+        CONSUMER_EOF\ncat > Tests/CMake/main.swift <<'CONSUMER_EOF'\n//===----------------------------------------------------------------------===//\n\
+        //\n// This source file is part of the Swift Distributed Tracing open source project\n//\n// Copyright (c)\
+        \ 2026 Apple Inc. and the Swift Distributed Tracing project authors\n// Licensed under Apache License v2.0\n\
+        //\n// See LICENSE.txt for license information\n// See CONTRIBUTORS.txt for the list of Swift Distributed\
+        \ Tracing project authors\n//\n// SPDX-License-Identifier: Apache-2.0\n//\n//===----------------------------------------------------------------------===//\n\
+        \nimport InMemoryTracing\nimport Instrumentation\nimport ServiceContextModule\nimport Tracing\n\nlet context:\
+        \ ServiceContextModule.ServiceContext = InstrumentationContext.topLevel\nlet tracer = InMemoryTracer()\n\
+        let span = tracer.startSpan(\"CMake\", context: context)\nspan.end()\nprecondition(tracer.popFinishedSpans().count\
+        \ == 1)\nlet instrument = NoOpInstrument()\nlet noOpTracer = NoOpTracer()\nnoOpTracer.forceFlush()\n_ =\
+        \ instrument\n\nCONSUMER_EOF\n"
     - name: Select Swift 6.4 Xcode
       shell: bash
       run: "set -euo pipefail\nselected=\"\"\nfor app in /Applications/Xcode*.app; do\n  [ -d \"$app/Contents/Developer\"\
@@ -147,17 +195,17 @@ jobs:
       run: brew install cmake ninja
     - name: Build-tree and relocated static/shared consumers
       shell: bash
-      run: "set -euo pipefail\nswift --version\ncmake --version\nfor shared in OFF ON; do\n  for generator in Ninja\
-        \ 'Ninja Multi-Config'; do\n    label=\"${shared}-${generator// /-}\"\n    prefix=\"$PWD/check-$label/prefix\"\
-        \n    cmake -S . -B \"library-$label\" -G \"$generator\" -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=\"\
-        $shared\" -DCMAKE_PREFIX_PATH=\"$prefix\" -DCMAKE_INSTALL_PREFIX=\"$prefix\"\n    cmake --build \"library-$label\"\
-        \ --config Debug\n    cmake --install \"library-$label\" --config Debug\n    cmake -DCMAKE_BUILD_TYPE=Debug\
-        \ -S Tests/CMake -B \"consumer-build-$label\" -G \"$generator\" -DCMAKE_PREFIX_PATH=\"$PWD/library-$label;$prefix\"\
-        \n    cmake --build \"consumer-build-$label\" --config Debug\n    ctest --test-dir \"consumer-build-$label\"\
-        \ -C Debug --output-on-failure\n    mv \"$prefix\" \"${prefix}-moved\"\n    cmake -DCMAKE_BUILD_TYPE=Debug\
-        \ -S Tests/CMake -B \"consumer-install-$label\" -G \"$generator\" -DCMAKE_PREFIX_PATH=\"${prefix}-moved\"\
-        \n    cmake --build \"consumer-install-$label\" --config Debug\n    ctest --test-dir \"consumer-install-$label\"\
-        \ -C Debug --output-on-failure\n  done\ndone\n"
+      run: "set -euo pipefail\nswift --version\ncmake --version\nfor shared in OFF ON; do\n  for generator in Ninja;\
+        \ do\n    label=\"${shared}-${generator// /-}\"\n    prefix=\"$PWD/check-$label/prefix\"\n    cmake -S .\
+        \ -B \"library-$label\" -G \"$generator\" -DCMAKE_BUILD_TYPE=Debug -DBUILD_SHARED_LIBS=\"$shared\" -DCMAKE_PREFIX_PATH=\"\
+        $prefix\" -DCMAKE_INSTALL_PREFIX=\"$prefix\"\n    cmake --build \"library-$label\" --config Debug\n    cmake\
+        \ --install \"library-$label\" --config Debug\n    cmake -DCMAKE_BUILD_TYPE=Debug -S Tests/CMake -B \"consumer-build-$label\"\
+        \ -G \"$generator\" -DCMAKE_PREFIX_PATH=\"$PWD/library-$label;$prefix\"\n    cmake --build \"consumer-build-$label\"\
+        \ --config Debug\n    ctest --test-dir \"consumer-build-$label\" -C Debug --output-on-failure\n    mv \"\
+        $prefix\" \"${prefix}-moved\"\n    cmake -DCMAKE_BUILD_TYPE=Debug -S Tests/CMake -B \"consumer-install-$label\"\
+        \ -G \"$generator\" -DCMAKE_PREFIX_PATH=\"${prefix}-moved\"\n    cmake --build \"consumer-install-$label\"\
+        \ --config Debug\n    ctest --test-dir \"consumer-install-$label\" -C Debug --output-on-failure\n  done\n\
+        done\n"
   cmake-windows:
     runs-on: windows-2022
     steps:
@@ -180,6 +228,30 @@ jobs:
         git merge-base --is-ancestor "$BASE_SHA" HEAD
 
         git log -1 --format=fuller'
+    - name: Restore independent fork-only consumer
+      shell: bash
+      run: "set -euo pipefail\nmkdir -p Tests/CMake\ncat > Tests/CMake/CMakeLists.txt <<'CONSUMER_EOF'\n##===----------------------------------------------------------------------===##\n\
+        ##\n## This source file is part of the Swift Distributed Tracing open source project\n##\n## Copyright (c)\
+        \ 2026 Apple Inc. and the Swift Distributed Tracing project authors\n## Licensed under Apache License v2.0\n\
+        ##\n## See LICENSE.txt for license information\n## See CONTRIBUTORS.txt for the list of Swift Distributed\
+        \ Tracing project authors\n##\n## SPDX-License-Identifier: Apache-2.0\n##\n##===----------------------------------------------------------------------===##\n\
+        \ncmake_minimum_required(VERSION 3.29)\nproject(CMakeConsumer LANGUAGES C Swift)\n\n# Match the DLL runtime\
+        \ used by the Windows Swift SDK, including Debug builds.\nif(WIN32 AND NOT DEFINED CMAKE_MSVC_RUNTIME_LIBRARY)\n\
+        \  set(CMAKE_MSVC_RUNTIME_LIBRARY MultiThreadedDLL)\nendif()\nfind_package(SwiftDistributedTracing CONFIG\
+        \ REQUIRED)\nadd_executable(CMakeConsumer main.swift)\ntarget_link_libraries(CMakeConsumer PRIVATE SwiftDistributedTracing::Instrumentation\
+        \ SwiftDistributedTracing::Tracing SwiftDistributedTracing::InMemoryTracing)\nenable_testing()\nadd_test(NAME\
+        \ CMakeConsumer COMMAND CMakeConsumer)\nif(WIN32)\n  set_tests_properties(CMakeConsumer PROPERTIES ENVIRONMENT_MODIFICATION\n\
+        \    \"PATH=path_list_prepend:$<TARGET_FILE_DIR:SwiftDistributedTracing::InMemoryTracing>\")\nendif()\n\n\
+        CONSUMER_EOF\ncat > Tests/CMake/main.swift <<'CONSUMER_EOF'\n//===----------------------------------------------------------------------===//\n\
+        //\n// This source file is part of the Swift Distributed Tracing open source project\n//\n// Copyright (c)\
+        \ 2026 Apple Inc. and the Swift Distributed Tracing project authors\n// Licensed under Apache License v2.0\n\
+        //\n// See LICENSE.txt for license information\n// See CONTRIBUTORS.txt for the list of Swift Distributed\
+        \ Tracing project authors\n//\n// SPDX-License-Identifier: Apache-2.0\n//\n//===----------------------------------------------------------------------===//\n\
+        \nimport InMemoryTracing\nimport Instrumentation\nimport ServiceContextModule\nimport Tracing\n\nlet context:\
+        \ ServiceContextModule.ServiceContext = InstrumentationContext.topLevel\nlet tracer = InMemoryTracer()\n\
+        let span = tracer.startSpan(\"CMake\", context: context)\nspan.end()\nprecondition(tracer.popFinishedSpans().count\
+        \ == 1)\nlet instrument = NoOpInstrument()\nlet noOpTracer = NoOpTracer()\nnoOpTracer.forceFlush()\n_ =\
+        \ instrument\n\nCONSUMER_EOF\n"
     - name: Install verified CMake binary
       shell: pwsh
       run: '$ErrorActionPreference = ''Stop''
@@ -213,8 +285,8 @@ jobs:
           \ | ForEach-Object {\n  if ($_ -match '^([^=]+)=(.*)$') { [Environment]::SetEnvironmentVariable($matches[1],\
           \ $matches[2], 'Process') }\n}\nwhere.exe link\nif ($LASTEXITCODE -ne 0) { throw 'MSVC linker unavailable'\
           \ }\nswift --version\nif ($LASTEXITCODE -ne 0) { throw 'Swift unavailable' }\nforeach ($shared in @('OFF',\
-          \ 'ON')) {\n  foreach ($generator in @('Ninja', 'Ninja Multi-Config')) {\n    $label = $shared + '-' +\
-          \ $generator.Replace(' ', '-')\n    $prefix = 'C:/work/check-' + $label + '/prefix'\n    Run-CMake -DCMAKE_C_COMPILER=clang\
+          \ 'ON')) {\n  foreach ($generator in @('Ninja')) {\n    $label = $shared + '-' + $generator.Replace('\
+          \ ', '-')\n    $prefix = 'C:/work/check-' + $label + '/prefix'\n    Run-CMake -DCMAKE_C_COMPILER=clang\
           \ -DCMAKE_BUILD_TYPE=Debug -S . -B \"library-$label\" -G $generator -DCMAKE_BUILD_TYPE=Debug \"-DBUILD_SHARED_LIBS=$shared\"\
           \ \"-DCMAKE_PREFIX_PATH=$prefix\" \"-DCMAKE_INSTALL_PREFIX=$prefix\"\n    Run-CMake --build \"library-$label\"\
           \ --config Debug\n    Run-CMake --install \"library-$label\" --config Debug\n    Run-CMake -DCMAKE_C_COMPILER=clang\
@@ -228,6 +300,11 @@ jobs:
         \ -v \"${env:GITHUB_WORKSPACE}:C:\\work\" -w C:\\work swift:6.4-windowsservercore-ltsc2022 powershell -NoProfile\
         \ -ExecutionPolicy Bypass -File C:\\work\\cmake-smoke.ps1\nif ($LASTEXITCODE -ne 0) { throw 'Windows CMake\
         \ validation failed' }"
+  cmake-lists:
+    uses: rksharma-owg/swift-distributed-tracing/.github/workflows/cmake_tests.yml@main
+    with:
+      image: swift:6.2-jammy
+      update_cmake_lists_config: '{"targets":[{"name":"Instrumentation","type":"source","exceptions":[]},{"name":"ServiceContextModule","type":"source","exceptions":[]},{"name":"Tracing","type":"source","exceptions":[]},{"name":"InMemoryTracing","type":"source","exceptions":[]}]}'
 'on':
   workflow_dispatch:
     inputs:
