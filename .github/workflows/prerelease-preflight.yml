@@ -1,0 +1,94 @@
+{
+  "name": "Available Xcode prerelease validation",
+  "permissions": {
+    "contents": "read"
+  },
+  "on": {
+    "workflow_dispatch": {
+      "inputs": {
+        "patch_sha": {
+          "type": "string",
+          "required": true
+        },
+        "base_sha": {
+          "type": "string",
+          "required": true
+        }
+      }
+    }
+  },
+  "jobs": {
+    "prerelease": {
+      "name": "Xcode 27.2 release candidate",
+      "runs-on": "xcode-27",
+      "timeout-minutes": 60,
+      "steps": [
+        {
+          "name": "Select installed Xcode prerelease",
+          "shell": "bash",
+          "run": "set -euo pipefail\napp=/Applications/Xcode_27.2_Release_Candidate.app\ntest -d \"$app/Contents/Developer\"\necho \"DEVELOPER_DIR=$app/Contents/Developer\" >> \"$GITHUB_ENV\"\nDEVELOPER_DIR=\"$app/Contents/Developer\" xcrun swift --version\nDEVELOPER_DIR=\"$app/Contents/Developer\" xcodebuild -version"
+        },
+        {
+          "name": "Checkout repository",
+          "uses": "actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
+          "with": {
+            "persist-credentials": false,
+            "submodules": true,
+            "ref": "${{ github.event.inputs.patch_sha }}",
+            "fetch-depth": 0
+          }
+        },
+        {
+          "name": "Verify exact contribution and baseline",
+          "shell": "bash",
+          "env": {
+            "PATCH_SHA": "${{ github.event.inputs.patch_sha }}",
+            "BASE_SHA": "${{ github.event.inputs.base_sha }}"
+          },
+          "run": "set -euo pipefail\ngit config --global --add safe.directory \"$GITHUB_WORKSPACE\"\ntest \"$(git rev-parse HEAD)\" = \"$PATCH_SHA\"\ngit merge-base --is-ancestor \"$BASE_SHA\" HEAD\ngit log -1 --format=fuller"
+        },
+        {
+          "name": "Emit diagnostics",
+          "run": "swift --version\n/usr/bin/xcodebuild -version\n"
+        },
+        {
+          "name": "Swift build",
+          "run": "swift build --build-tests"
+        },
+        {
+          "name": "Swift test",
+          "run": "swift test"
+        },
+        {
+          "name": "macOS build",
+          "run": "/usr/bin/xcodebuild \"${QUIET_ARG}\" -scheme \"${BUILD_SCHEME}\" -destination \"generic/platform=macos,variant=macos\" build"
+        },
+        {
+          "name": "macOS Catalyst build",
+          "run": "/usr/bin/xcodebuild \"${QUIET_ARG}\" -scheme \"${BUILD_SCHEME}\" -destination \"generic/platform=macos,variant=Mac Catalyst\" build"
+        },
+        {
+          "name": "iOS build",
+          "run": "/usr/bin/xcodebuild \"${QUIET_ARG}\" -scheme \"${BUILD_SCHEME}\" -destination \"generic/platform=ios\" build"
+        },
+        {
+          "name": "watchOS build",
+          "run": "/usr/bin/xcodebuild \"${QUIET_ARG}\" -scheme \"${BUILD_SCHEME}\" -destination \"generic/platform=watchos\" build"
+        },
+        {
+          "name": "tvOS build",
+          "run": "/usr/bin/xcodebuild \"${QUIET_ARG}\" -scheme \"${BUILD_SCHEME}\" -destination \"generic/platform=tvos\" build"
+        },
+        {
+          "name": "visionOS build",
+          "run": "/usr/bin/xcodebuild \"${QUIET_ARG}\" -scheme \"${BUILD_SCHEME}\" -destination \"generic/platform=visionos\" build"
+        }
+      ],
+      "env": {
+        "XCODE_VERSION": "27.2 Release Candidate",
+        "BUILD_SCHEME": "swift-distributed-tracing-Package",
+        "QUIET_ARG": "-quiet"
+      }
+    }
+  }
+}
